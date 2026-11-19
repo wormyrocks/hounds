@@ -1,56 +1,55 @@
 {
-  "version" : "4.0.1",
-  "song" : {
-    "title" : "The Baying of the Hounds",
-    "subTitle" : "",
-    "author" : "Opeth"
+  "version": "4.0.1",
+  "song": {
+    "title": "The Baying of the Hounds",
+    "subTitle": "",
+    "author": "Opeth"
   },
-  "audio" : {
-    "songFilename" : "hounds.ogg",
-    "songDuration" : 643.162,
-    "audioDataFilename" : "AudioData.dat",
-    "bpm" : 128,
-    "lufs" : 0,
-    "previewStartTime" : 155,
-    "previewDuration" : 10
+  "audio": {
+    "songFilename": "hounds.ogg",
+    "songDuration": 643.162,
+    "audioDataFilename": "AudioData.dat",
+    "bpm": 192,
+    "lufs": 0,
+    "previewStartTime": 155,
+    "previewDuration": 10
   },
-  "songPreviewFilename" : "hounds.ogg",
-  "coverImageFilename" : "cover.jpg",
-  "environmentNames" : [
+  "songPreviewFilename": "hounds.ogg",
+  "coverImageFilename": "cover.jpg",
+  "environmentNames": [
     "DefaultEnvironment"
   ],
-  "colorSchemes" : [
-  ],
-  "difficultyBeatmaps" : [
+  "colorSchemes": [],
+  "difficultyBeatmaps": [
     {
-      "characteristic" : "Standard",
-      "difficulty" : "Expert",
-      "beatmapAuthors" : {
-        "mappers" : [
+      "characteristic": "Standard",
+      "difficulty": "Expert",
+      "beatmapAuthors": {
+        "mappers": [
           "wormyrocks"
         ],
-        "lighters" : [
+        "lighters": [
           "wormyrocks"
         ]
       },
-      "environmentNameIdx" : 0,
-      "beatmapColorSchemeIdx" : -1,
-      "noteJumpMovementSpeed" : 10,
-      "noteJumpStartBeatOffset" : 0.133,
-      "beatmapDataFilename" : "ExpertStandard.dat",
-      "lightshowDataFilename" : "Expert.lightshow.dat",
-      "customData" : {
-        "suggestions" : [
+      "environmentNameIdx": 0,
+      "beatmapColorSchemeIdx": -1,
+      "noteJumpMovementSpeed": 10,
+      "noteJumpStartBeatOffset": -0.8,
+      "beatmapDataFilename": "ExpertStandard.dat",
+      "lightshowDataFilename": "Expert.lightshow.dat",
+      "customData": {
+        "suggestions": [
           "Chroma Lighting Events"
         ]
       }
     }
   ],
-  "customData" : {
-    "editors" : {
-      "lastEditedBy" : "ChroMapper",
-      "ChroMapper" : {
-        "version" : "0.13.892"
+  "customData": {
+    "editors": {
+      "lastEditedBy": "ChroMapper",
+      "ChroMapper": {
+        "version": "0.13.892"
       }
     }
   }

@@ -1,13 +1,15 @@
-"""Generate lighting for the first 60 s (beats 0-128 @ 128 BPM) of hounds.
+"""Generate lighting for the first 60 s (beats 0-192 on the Tempora grid) of hounds.
 
-Usage: python3 gen_lights.py . onsets_low.txt
+Usage: python3 gen_lights.py MAP_DIR
 Replaces every basic event before END in Expert.lightshow.dat; events after END are kept.
+
+Beats here are Tempora-grid beats (~192 BPM over this section: 6 beats per bar, bars start
+at beats 1, 7, 13, ...). Notes are expected to be snapped to the grid already (retime.py --snap).
 """
 import json, sys, os
 
 MAP = sys.argv[1]
-ONSETS = [float(l) for l in open(sys.argv[2]) if l.strip()]
-END = 128.0
+END = 192.0
 
 # Default environment event types
 BACK, RING, LEFT, RIGHT, CENTER, SPIN, ZOOM, LSPD, RSPD = 0, 1, 2, 3, 4, 8, 9, 12, 13
@@ -36,27 +38,14 @@ def speed(b, l, r=None):
     ev(b, RSPD, l if r is None else r)
 
 
-def snap(b):
-    """Snap a note time onto the nearest audio onset (if close), then onto a clean grid."""
-    g3 = round(b * 3) / 3
-    if abs(g3 - b) <= 0.04:          # on-grid note (most are 0.033 late)
-        return round(g3, 3)
-    near = min(ONSETS, key=lambda o: abs(o - b))
-    if abs(near - b) <= 0.15:
-        b = near
-    g12 = round(b * 12) / 12
-    return g12 if abs(g12 - b) <= 0.035 else round(b * 48) / 48
-
-
-# ---- load notes, grouped by snapped light time ----
+# ---- load notes, grouped by time ----
 bm = json.load(open(os.path.join(MAP, 'ExpertStandard.dat')))
 nd = bm['colorNotesData']
 groups = {}
 for n in bm['colorNotes']:
-    if n['b'] >= END + 0.5:
+    if n['b'] >= END + 0.75:
         continue
-    d = nd[n['i']]
-    groups.setdefault(snap(n['b']), []).append(d)
+    groups.setdefault(round(n['b'], 3), []).append(nd[n['i']])
 NOTE_TIMES = sorted(groups)
 
 
@@ -64,8 +53,8 @@ def notes_in(a, b):
     return [(t, groups[t]) for t in NOTE_TIMES if a <= t < b]
 
 
-def is_downbeat(t):  # bars start at 4.667, 8.667, ...
-    return abs(((t - 2 / 3) / 4) - round((t - 2 / 3) / 4)) < 1e-3
+def is_downbeat(t):  # bars start at 1, 7, 13, ...
+    return abs((t - 1) / 6 - round((t - 1) / 6)) < 1e-3
 
 
 def riff(a, b, prim, alt, f=1.0, center_doubles=True):
@@ -107,135 +96,135 @@ def big_hit(t, col, spin=True, zoom=True, spd=None):
 
 
 # ======================================================================
-# 0 - 4.667  silence: blackout
+# 0 - 7  silence: blackout
 all_lights(0, OFF)
 speed(0, 0)
 
-# 4.667  opening chord (loudest moment of the intro), rings out until 12.667
-big_hit(4.667, R, spd=2)
-ev(4.667, BACK, R['fl'], 1.3)
-ev(11.9, BACK, R['tr'], 0.12)       # slow fade of the back lasers while the chord rings
-ev(8.667, SPIN, 0)
+# 7  opening chord (loudest moment of the intro), rings out until 19
+big_hit(7, R, spd=2)
+ev(7, BACK, R['fl'], 1.3)
+ev(17.75, BACK, R['tr'], 0.12)      # slow fade of the back lasers while the chord rings
+ev(13, SPIN, 0)
 
-# 12.667 - 24.667  quiet single-note riff; lasers answer each note, the stage swells toward the band entry
-speed(12.667, 1)
-for t, ns in notes_in(12.0, 24.6):
-    k = (t - 12.667) / 12            # 0 -> 1 across the section
+# 19 - 37  quiet single-note riff; lasers answer each note, the stage swells toward the band entry
+speed(19, 1)
+for t, ns in notes_in(18, 36.9):
+    k = (t - 19) / 18                # 0 -> 1 across the section
     lvl = 0.45 + 0.45 * k
     for d in ns:
         ev(t, LEFT if d['c'] == 0 else RIGHT, COL[d['c']]['fd'], lvl)
-ev(16.667, RING, R['on'], 0.0)
-ev(24.5, RING, R['tr'], 0.5)
-ev(20.667, CENTER, R['on'], 0.0)
-ev(24.5, CENTER, R['tr'], 0.6)
-ev(22.667, SPIN, 0)
+ev(25, RING, R['on'], 0.0)
+ev(36.75, RING, R['tr'], 0.5)
+ev(31, CENTER, R['on'], 0.0)
+ev(36.75, CENTER, R['tr'], 0.6)
+ev(34, SPIN, 0)
 
-# 24.667 - 27.667  band enters: triplet pickup ripples across the ring, then the lasers
-ev(24.667, RING, R['fl'])
-ev(25.0, RING, B['fl'])
-ev(25.333, RING, R['fd'])
-ev(25.333, CENTER, R['fd'], 0.6)
-ev(25.667, BACK, B['fd'])
-ev(26.0, LEFT, B['fd'])
-ev(26.333, RIGHT, B['fd'])
-ev(26.333, CENTER, B['fd'], 0.8)
-ev(27.333, ZOOM, 0)
+# 37 - 41.5  band enters: pickup ripples across the ring, then the lasers
+ev(37, RING, R['fl'])
+ev(37.5, RING, B['fl'])
+ev(38, RING, R['fd'])
+ev(38, CENTER, R['fd'], 0.6)
+ev(38.5, BACK, B['fd'])
+ev(39, LEFT, B['fd'])
+ev(39.5, RIGHT, B['fd'])
+ev(39.5, CENTER, B['fd'], 0.8)
+ev(41, ZOOM, 0)
 
-# 27.667  big hit, main riff starts
-big_hit(27.667, R, spd=3)
-ev(28.667, RING, R['on'], 0.25)      # ambient glow under the riff
-riff(28.2, 36.6, R, B)
+# 41.5  big hit, main riff starts
+big_hit(41.5, R, spd=3)
+ev(43, RING, R['on'], 0.25)          # ambient glow under the riff
+riff(42.3, 54.9, R, B)
 
-# 36.667 - 40.667  stop + three-step build into the big hit
-ev(36.667, BACK, W['fd'])
-ev(36.667, CENTER, R['fd'])
-ev(36.667, RING, R['fd'], 0.6)       # ambient fades out -> darkness before the build
-ev(36.667, LEFT, OFF)
-ev(36.667, RIGHT, OFF)
-speed(36.667, 0)
-ev(38.667, LEFT, R['fl'], 0.7)
-speed(38.667, 3, 0)
-ev(39.333, RIGHT, B['fl'], 0.85)
-speed(39.333, 3, 3)
-ev(40.0, BACK, R['fl'], 1.0)
-ev(40.0, RING, R['fl'], 0.6)
-speed(40.0, 5)
-big_hit(40.667, W, spd=4)
-ev(40.667, RING, R['fl'], 1.0)
+# 55 - 61  stop + three-step build into the big hit
+ev(55, BACK, W['fd'])
+ev(55, CENTER, R['fd'])
+ev(55, RING, R['fd'], 0.6)           # ambient fades out -> darkness before the build
+ev(55, LEFT, OFF)
+ev(55, RIGHT, OFF)
+speed(55, 0)
+ev(58, LEFT, R['fl'], 0.7)
+speed(58, 3, 0)
+ev(59, RIGHT, B['fl'], 0.85)
+speed(59, 3, 3)
+ev(60, BACK, R['fl'], 1.0)
+ev(60, RING, R['fl'], 0.6)
+speed(60, 5)
+big_hit(61, W, spd=4)
+ev(61, RING, R['fl'], 1.0)
 
-# 40.667 - 48.667  riff, blue variation
-ev(42.667, RING, B['tr'], 0.25)
-riff(42.9, 48.6, B, R)
-big_hit(48.667, B, spd=2)
+# 61 - 73  riff, blue variation
+ev(64, RING, B['tr'], 0.25)
+riff(64.3, 72.9, B, R)
+big_hit(73, B, spd=2)
 
-# 48.667 - 64.667  sparse passage: slow colour drift, accents on note pairs
-ev(49.5, BACK, B['tr'], 0.35)
-ev(56.667, BACK, R['tr'], 0.35)
-ev(64.4, BACK, R['tr'], 0.6)
-ev(50.667, RING, B['tr'], 0.2)
-speed(52.667, 1)
-for t, ns in notes_in(49.0, 64.6):
+# 73 - 97  sparse passage: slow colour drift, accents on note pairs
+ev(74.25, BACK, B['tr'], 0.35)
+ev(85, BACK, R['tr'], 0.35)
+ev(96.5, BACK, R['tr'], 0.6)
+ev(76, RING, B['tr'], 0.2)
+speed(79, 1)
+for t, ns in notes_in(73.5, 96.9):
     cs = {d['c'] for d in ns}
     for c in cs:
         ev(t, LEFT if c == 0 else RIGHT, COL[c]['fd'], 0.8)
     if len(cs) == 2:
         ev(t, CENTER, B['fd'], 0.6)
-ev(56.667, SPIN, 0)
-ev(60.667, SPIN, 0)
+ev(85, SPIN, 0)
+ev(91, SPIN, 0)
 
-# 64.667 - 76.667  riff returns; arpeggiated singles 72-76 chase by column
-big_hit(64.667, R, spd=3)
-ev(65.667, RING, R['on'], 0.25)
-riff(65.0, 72.4, R, B)
-ev(67.667, CENTER, W['fd'], 0.9)    # strong snare accent in the audio
-ev(72.4, RING, B['tr'], 0.3)
-column_chase(72.4, 76.6)
-ev(72.667, ZOOM, 0)
+# 97 - 115  riff returns; arpeggiated singles 108.5-115 chase by column
+big_hit(97, R, spd=3)
+ev(98.5, RING, R['on'], 0.25)
+riff(97.5, 108.6, R, B)
+ev(101.5, CENTER, W['fd'], 0.9)      # strong snare accent in the audio
+ev(108.5, RING, B['tr'], 0.3)
+column_chase(108.6, 114.9)
+ev(109, ZOOM, 0)
 
-# 76.667 - 84.667  riff
-ev(76.667, RING, R['tr'], 0.25)
-speed(76.667, 4)
-riff(76.6, 84.6, R, B)
-ev(80.667, ZOOM, 0)
+# 115 - 127  riff
+ev(115, RING, R['tr'], 0.25)
+speed(115, 4)
+riff(114.9, 126.9, R, B)
+ev(121, ZOOM, 0)
 
-# 84.667 - 88.667  walls: the side of the wall lights up
-ev(84.667, LEFT, W['fl'], 1.0)
-ev(84.667, RIGHT, OFF)
-ev(84.667, BACK, R['fd'])
-ev(84.667, LSPD, 7)
-ev(85.667, LEFT, R['fd'], 0.8)
-ev(85.667, CENTER, R['fd'], 0.6)
-ev(86.667, RIGHT, W['fl'], 1.0)
-ev(86.667, LEFT, OFF)
-ev(86.667, BACK, B['fd'])
-ev(86.667, RSPD, 7)
-ev(87.667, RIGHT, B['fd'], 0.8)
-ev(87.667, CENTER, B['fd'], 0.6)
-speed(88.5, 3)
+# 127 - 133  walls: the side of the wall lights up
+ev(127, LEFT, W['fl'], 1.0)
+ev(127, RIGHT, OFF)
+ev(127, BACK, R['fd'])
+ev(127, LSPD, 7)
+ev(128.5, LEFT, R['fd'], 0.8)
+ev(128.5, CENTER, R['fd'], 0.6)
+ev(130, RIGHT, W['fl'], 1.0)
+ev(130, LEFT, OFF)
+ev(130, BACK, B['fd'])
+ev(130, RSPD, 7)
+ev(131.5, RIGHT, B['fd'], 0.8)
+ev(131.5, CENTER, B['fd'], 0.6)
+speed(132.75, 3)
 
-# 88.667 - 99  riff, blue colour
-ev(88.667, RING, B['on'], 0.25)
-riff(88.6, 99.0, B, R)
-ev(92.667, ZOOM, 0)
-ev(94.667, CENTER, W['fd'], 0.8)
-ev(97.667, BACK, W['fd'], 0.8)       # strong hit in the audio with no note
+# 133 - 148.5  riff, blue colour
+ev(133, RING, B['on'], 0.25)
+riff(132.9, 148.5, B, R)
+ev(139, ZOOM, 0)
+ev(142, CENTER, W['fd'], 0.8)
+ev(146.5, BACK, W['fd'], 0.8)        # strong hit in the audio with no note
 
-# 99 - 104.667  syncopated lead fill: center + lasers trade on every note
-ev(99.0, RING, B['tr'], 0.1)
-speed(99.0, 2)
-for t, ns in notes_in(99.0, 104.6):
+# 148.5 - 157  syncopated lead fill: center + lasers trade on every note
+ev(148.5, RING, B['tr'], 0.1)
+speed(148.5, 2)
+for t, ns in notes_in(148.5, 156.9):
     for d in ns:
         ev(t, LEFT if d['c'] == 0 else RIGHT, COL[d['c']]['fd'], 0.9)
         ev(t, CENTER, COL[d['c']]['fd'], 0.7)
-ev(103.667, BACK, R['fd'])
-ev(103.667, SPIN, 0)
+ev(155.5, BACK, R['fd'])
+ev(155.5, SPIN, 0)
 
-# 104.667 - 108.667  triplet runs
-ev(104.667, RING, R['on'], 0.3)
-speed(104.667, 5)
-column_chase(104.6, 108.6)
+# 157 - 163  fast runs
+ev(157, RING, R['on'], 0.3)
+speed(157, 5)
+column_chase(156.9, 162.9)
 
-# 108.667 / 112.667 / 116.667  huge sustained chords every bar; side matches the notes' column
+# 163 / 169 / 175  huge sustained chords every bar; side matches the notes' column
 def chord(t, side, col, nxt):
     ev(t, side, W['fl'], 1.2)
     ev(t, LEFT if side == RIGHT else RIGHT, col['fd'], 0.6)
@@ -247,31 +236,31 @@ def chord(t, side, col, nxt):
     ev(t, LSPD if side == LEFT else RSPD, 8)
     ev(t, RSPD if side == LEFT else LSPD, 2)
     # let the chord decay over the bar
-    end = nxt - 0.2
+    end = nxt - 0.25
     for typ, lvl in ((side, 0.2), (BACK, 0.25), (RING, 0.15)):
         ev(end, typ, col['tr'], lvl)
 
-chord(108.667, RIGHT, R, 112.667)
-chord(112.667, LEFT, B, 116.667)
-chord(116.667, RIGHT, R, 120.667)
+chord(163, RIGHT, R, 169)
+chord(169, LEFT, B, 175)
+chord(175, RIGHT, R, 181)
 # drum hits between the chords (no notes there)
-for t in (110.0, 111.333, 111.667, 114.0, 115.667, 118.0, 119.333, 119.667):
-    ev(t, CENTER, R['fd'], 0.6 if t not in (111.667, 119.667) else 0.9)
+for t in (165, 167, 167.5, 171, 173.5, 177, 179, 179.5):
+    ev(t, CENTER, R['fd'], 0.6 if t not in (167.5, 179.5) else 0.9)
 
-# 120.667 - 128  fast runs + walls
-ev(120.667, LEFT, W['fl'], 1.0)   # left wall
-ev(120.667, LSPD, 6)
-ev(121.4, LEFT, R['tr'], 0.0)
-ev(122.667, RIGHT, W['fl'], 1.0)  # right wall
-ev(122.667, RSPD, 6)
-ev(123.4, RIGHT, B['tr'], 0.0)
-ev(120.667, BACK, R['on'], 0.3)
-column_chase(121.0, 120.667 + 2)  # (runs during the walls)
-column_chase(123.0, END)
-for t in (124.667, 126.0, 127.667):
+# 181 - 192  fast runs + walls
+ev(181, LEFT, W['fl'], 1.0)   # left wall
+ev(181, LSPD, 6)
+ev(182, LEFT, R['tr'], 0.0)
+ev(184, RIGHT, W['fl'], 1.0)  # right wall
+ev(184, RSPD, 6)
+ev(185, RIGHT, B['tr'], 0.0)
+ev(181, BACK, R['on'], 0.3)
+column_chase(181.5, 184)      # (runs during the walls)
+column_chase(184.5, END)
+for t in (187, 189, 191.5):
     ev(t, CENTER, W['fd'], 0.9)
     ev(t, SPIN, 0)
-ev(126.0, ZOOM, 0)
+ev(189, ZOOM, 0)
 
 # leave a steady state so the rest of the (unlit) song isn't dark
 ev(END, BACK, R['on'], 0.7)
@@ -280,11 +269,11 @@ ev(END, CENTER, R['on'], 0.4)
 speed(END, 2)
 
 # ======================================================================
-# Write: drop the old (misaligned) events before END, keep anything after.
+# Write: drop the old events before END, keep anything after.
 lp = os.path.join(MAP, 'Expert.lightshow.dat')
 ls = json.load(open(lp))
 old_data = ls['basicEventsData']
-kept = [(e['b'], old_data[e['i']]) for e in ls['basicEvents'] if e['b'] >= END + 0.5]
+kept = [(e['b'], old_data[e['i']]) for e in ls['basicEvents'] if e['b'] >= END + 0.75]
 
 # if a light type gets two events at the exact same time, keep the last one written
 seen = {}
